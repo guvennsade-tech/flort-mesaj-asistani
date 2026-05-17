@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ErrorBoundary } from "@/components/error-boundary";
 import {
   Ton,
   IliskiAsamasi,
@@ -44,7 +45,7 @@ function parseFavori(id: string): FavoriItem | null {
   };
 }
 
-export default function FavorilerPage() {
+function FavorilerContent() {
   const [favoriler, setFavoriler] = useState<FavoriItem[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const { toasts, goster: toastGoster, kapat: toastKapat } = useToast();
@@ -208,5 +209,13 @@ export default function FavorilerPage() {
 
       <ToastContainer toasts={toasts} onKapat={toastKapat} />
     </main>
+  );
+}
+
+export default function FavorilerPage() {
+  return (
+    <ErrorBoundary>
+      <FavorilerContent />
+    </ErrorBoundary>
   );
 }

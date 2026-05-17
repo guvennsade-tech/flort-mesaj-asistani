@@ -24,6 +24,7 @@ import { EmptyStateGuide } from "@/components/empty-state-guide";
 import { SuggestionSkeleton } from "@/components/suggestion-skeleton";
 import { ToastContainer, useToast } from "@/components/toast";
 import { navItems } from "@/lib/ui-data";
+import { useRef } from "react";
 
 export function AssistantApp() {
   const [sohbet, setSohbet] = useState<SohbetMesaji[]>([]);
@@ -40,6 +41,7 @@ export function AssistantApp() {
   const [favoriler, setFavoriler] = useState<string[]>([]);
   const { toasts, goster: toastGoster, kapat: toastKapat } = useToast();
   const pathname = usePathname();
+  const sonuclarRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     try {
@@ -139,6 +141,13 @@ export function AssistantApp() {
       }
 
       setOneriler(data.oneriler);
+
+      /* Mobilde sonuçlara otomatik kaydır */
+      if (window.innerWidth < 1024) {
+        setTimeout(() => {
+          sonuclarRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+      }
 
       /* Geçmişe kaydet */
       try {
@@ -506,7 +515,7 @@ export function AssistantApp() {
             </section>
 
             {/* Sağ panel — öneriler */}
-            <section className="bg-slate-50 p-5 lg:p-8">
+            <section ref={sonuclarRef} className="bg-slate-50 p-5 lg:p-8">
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-500">

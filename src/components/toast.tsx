@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface Toast {
   id: number;
@@ -8,13 +8,12 @@ interface Toast {
   tip: "basari" | "hata" | "bilgi";
 }
 
-let toastId = 0;
-
 export function useToast() {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const idRef = useRef(0);
 
   function goster(mesaj: string, tip: Toast["tip"] = "basari") {
-    const id = ++toastId;
+    const id = ++idRef.current;
     setToasts((prev) => [...prev, { id, mesaj, tip }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));

@@ -82,6 +82,18 @@ export function SuggestionCard({
             <span className="text-xl">{favorite ? "♥" : "♡"}</span>
             Favori
           </button>
+          <button
+            onClick={() => {
+              const url = `https://wa.me/?text=${encodeURIComponent(suggestion.mesaj)}`;
+              window.open(url, "_blank", "noopener,noreferrer");
+            }}
+            className="flex flex-1 flex-col items-center justify-center gap-1 border-l border-slate-100 px-3 py-4 min-h-[56px] text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 active:bg-slate-100 md:border-l-0 md:border-t"
+            type="button"
+            aria-label="WhatsApp'ta paylaş"
+          >
+            <span className="text-xl">↗</span>
+            Paylaş
+          </button>
         </div>
       </div>
     </article>

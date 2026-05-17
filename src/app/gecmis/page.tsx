@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ErrorBoundary } from "@/components/error-boundary";
 import {
   Ton,
   IliskiAsamasi,
@@ -35,7 +36,7 @@ function formatTarih(iso: string): string {
   });
 }
 
-export default function GecmisPage() {
+function GecmisContent() {
   const [gecmis, setGecmis] = useState<GecmisKaydi[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [acikId, setAcikId] = useState<string | null>(null);
@@ -241,5 +242,13 @@ export default function GecmisPage() {
 
       <ToastContainer toasts={toasts} onKapat={toastKapat} />
     </main>
+  );
+}
+
+export default function GecmisPage() {
+  return (
+    <ErrorBoundary>
+      <GecmisContent />
+    </ErrorBoundary>
   );
 }

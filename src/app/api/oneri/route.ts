@@ -42,6 +42,7 @@ function sanitizeInput(text: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  /* ===== Faz 1: Request parsing ve validasyon ===== */
   try {
     const contentType = request.headers.get("content-type") || "";
     if (!contentType.includes("application/json")) {
@@ -67,40 +68,6 @@ export async function POST(request: NextRequest) {
         { hata: "Bir şeyler ters gitti. Lütfen sayfayı yenileyip tekrar dene." },
         { status: 400 }
       );
-    }
-
-    const clientId = request.cookies.get("fm_client_id")?.value || randomUUID();
-    const rateLimit = await checkRateLimit(
-      getClientKey(request.headers, clientId)
-    );
-    const cookieOptions = {
-      httpOnly: true,
-      sameSite: "lax" as const,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 365,
-      path: "/",
-    };
-
-    if (!rateLimit.allowed) {
-      const dakika = Math.max(
-        Math.ceil((rateLimit.resetAt - Date.now()) / 60_000),
-        1
-      );
-      const limitResponse = NextResponse.json(
-        {
-          hata: `Kısa sürede çok fazla öneri istendi. Lütfen yaklaşık ${dakika} dakika sonra tekrar deneyin.`,
-        },
-        {
-          status: 429,
-          headers: {
-            "Retry-After": String(dakika * 60),
-            "X-RateLimit-Remaining": "0",
-            "X-RateLimit-Source": rateLimit.source,
-          },
-        }
-      );
-      limitResponse.cookies.set("fm_client_id", clientId, cookieOptions);
-      return limitResponse;
     }
 
     const { ton, asama, hedef } = body;
@@ -168,6 +135,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    /* ===== Faz 2: İçerik moderasyonu (rate limitten ÖNCE) ===== */
     for (const m of sohbet) {
       const kontrol = icerikKontrol(m.metin);
       if (!kontrol.guvenli) {
@@ -184,6 +152,42 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    /* ===== Faz 3: Rate limit (sadece geçerli ve temiz istekler) ===== */
+    const clientId = request.cookies.get("fm_client_id")?.value || randomUUID();
+    const rateLimit = await checkRateLimit(
+      getClientKey(request.headers, clientId)
+    );
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: "lax" as const,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 365,
+      path: "/",
+    };
+
+    if (!rateLimit.allowed) {
+      const dakika = Math.max(
+        Math.ceil((rateLimit.resetAt - Date.now()) / 60_000),
+        1
+      );
+      const limitResponse = NextResponse.json(
+        {
+          hata: `Kısa sürede çok fazla öneri istendi. ${dakika} dakika sonra tekrar deneyebilirsiniz.`,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(dakika * 60),
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Source": rateLimit.source,
+          },
+        }
+      );
+      limitResponse.cookies.set("fm_client_id", clientId, cookieOptions);
+      return limitResponse;
+    }
+
+    /* ===== Faz 4: Bütçe kontrolü ===== */
     if (isBudgetExceeded()) {
       return NextResponse.json(
         {
@@ -193,6 +197,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    /* ===== Faz 5: OpenAI API çağrısı ===== */
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
@@ -269,6 +274,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    /* ===== Faz 6: JSON parse ve AI çıktı moderasyonu ===== */
     let oneriler: MesajOnerisi[];
     try {
       let raw = icerik.trim();

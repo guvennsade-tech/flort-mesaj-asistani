@@ -80,24 +80,24 @@ Kurallar:
 - Karşı tarafın rızasına ve sınırlarına saygılı ol
 - Kıskandırma, suçluluk, baskı veya manipülasyon içerme
 
-Tam olarak aşağıdaki JSON formatında yanıt ver:
+Örnek format (sohbet: "O: Yarın sinemaya gidelim mi?", esprili ton, yazışıyoruz, sohbeti sürdür):
 
 {
   "oneriler": [
     {
-      "mesaj": "önerilen cevap metni",
-      "aciklama": "neden bu tarz önerildi (1 kısa cümle)"
+      "mesaj": "Hangi filmi düşünüyorsun? Ben korkuya varım ama yanında biri olunca kaçmam 😂",
+      "aciklama": "Esprili bir soruyla sohbeti devam ettirir ve ortak aktiviteye atıf yapar."
     },
     {
-      "mesaj": "ikinci önerilen cevap metni",
-      "aciklama": "neden bu tarz önerildi (1 kısa cümle)"
+      "mesaj": "Sinema + mısır = mükemmel akşam. Ama önce hangi tür sevdiğini söyle.",
+      "aciklama": "Samimi ve eğlenceli bir yaklaşımla karşı tarafın tercihini öğrenmeye çalışır."
     },
     {
-      "mesaj": "üçüncü önerilen cevap metni",
-      "aciklama": "neden bu tarz önerildi (1 kısa cümle)"
+      "mesaj": "Yarın işten sonra boşum, ne zaman uygun sana?",
+      "aciklama": "Net ve sıcak bir cevapla planı somutlaştırır."
     }
   ]
 }
 
-Sadece JSON yanıtı ver, başka açıklama ekleme.`;
+Tam olarak bu JSON formatında yanıt ver. Başka açıklama ekleme, sadece geçerli JSON döndür.`;
 }
