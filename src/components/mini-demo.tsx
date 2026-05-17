@@ -4,42 +4,109 @@ import { useState } from "react";
 import Link from "next/link";
 import { MesajOnerisi } from "@/lib/types";
 
+/* ---------- Demo cevap kütüphanesi (API maliyeti yok, rate limit yok) ---------- */
+
+interface DemoPaket {
+  keywords: string[];
+  oneriler: MesajOnerisi[];
+}
+
+const demoPaketler: DemoPaket[] = [
+  {
+    keywords: ["hafta sonu", "ne yap", "plan", "boş", "müsait", "zaman"],
+    oneriler: [
+      { mesaj: "Henüz net bir plan yok, senin önerin var mı? 😄", aciklama: "Karşı tarafa soru sorarak sohbeti açık tutar." },
+      { mesaj: "Kafeye gitmeyi düşünüyordum, gelmek ister misin?", aciklama: "Doğal bir buluşma daveti içerir." },
+      { mesaj: "Dizi izleyip dinlenmek istiyorum ama tek başına sıkıcı oluyor.", aciklama: "Hafif bir iltifat ve ortak aktivite önerisi." },
+    ],
+  },
+  {
+    keywords: ["nasılsın", "naber", "napıyorsun", "nasıl gidiyor", "keyif"],
+    oneriler: [
+      { mesaj: "İyiyim, seninle yazışınca daha da iyi oldum tabii ✨", aciklama: "Samimi ve hafif romantik bir ton kullanır." },
+      { mesaj: "İyi ama biraz sıkıldım, sen anlat neler yapıyorsun?", aciklama: "Karşı tarafa ilgi göstererek sohbeti devam ettirir." },
+      { mesaj: "Fena değil, senin haberlerini bekliyordum aslında.", aciklama: "İlgi gösterir ama baskı kurmaz." },
+    ],
+  },
+  {
+    keywords: ["görüşelim", "buluşalım", "tanışalım", "kahve", "yemek", "sinema"],
+    oneriler: [
+      { mesaj: "Kesinlikle! Hangi gün sana uygun? ☕", aciklama: "Olumlu ve net bir yanıt verir." },
+      { mesaj: "Ben de aynı şeyi düşünüyordum. Yakındaki bir kafe önerir misin?", aciklama: "Karşı tarafın fikrini alarak ortak karar almayı teşvik eder." },
+      { mesaj: "Çok isterim ama bu hafta biraz yoğunum, önümüzdeki hafta olur mu?", aciklama: "Dürüst ama kapıyı kapatmayan bir cevap." },
+    ],
+  },
+  {
+    keywords: ["özledim", "özle", "düşün", "aklımda", "geliyorsun"],
+    oneriler: [
+      { mesaj: "Ben de seni çok özledim, bu hafta görüşelim mi? 💫", aciklama: "Duygusal karşılık verir ve somut bir adım atar." },
+      { mesaj: "Her gece uyumadan önce aklıma geliyorsun.", aciklama: "Romantik ama abartısız bir itiraf." },
+      { mesaj: "Özlemek güzel, ama seninle olmak daha güzel olurdu.", aciklama: "Samimi ve çarpıcı bir cümle." },
+    ],
+  },
+  {
+    keywords: ["şaka", "gül", "komik", "espri", "güldüm", "kahkaha"],
+    oneriler: [
+      { mesaj: "Komiksin sen, gülmekten telefonu düşürdüm az kalsın 😂", aciklama: "Esprili bir karşılık verir." },
+      { mesaj: "Bu şakayı çalıyorum, arkadaşlarıma anlatacağım.", aciklama: "Mizahi bir ton kullanır." },
+      { mesaj: "Seninle konuşmak bütün günün stresini alıyor.", aciklama: "Esprinin ardından samimi bir iltifat." },
+    ],
+  },
+  {
+    keywords: ["sev", "hoşlan", "beğen", "çekici", "yakışıklı", "güzel"],
+    oneriler: [
+      { mesaj: "Sen de benim için çok özelsin, bunu biliyorsun değil mi?", aciklama: "Karşılıklı duyguyu nazikçe ifade eder." },
+      { mesaj: "Bunu duymak beni çok mutlu etti, teşekkür ederim 🌸", aciklama: "Dürüst ve sıcak bir karşılık." },
+      { mesaj: "Ben de seninle olmaktan çok keyif alıyorum.", aciklama: "İlgi gösterir ama abartılı olmaz." },
+    ],
+  },
+  {
+    keywords: ["yemek", "aç", "yedin mi", "akşam yemeği", "restoran", "mutfak"],
+    oneriler: [
+      { mesaj: "Henüz yemedim, seninle birlikte yemek isterdim aslında.", aciklama: "Doğal bir buluşma daveti." },
+      { mesaj: "Ne önerirsin? Senin zevkine güveniyorum. 😊", aciklama: "Karşı tarafa değer verdiğini hissettirir." },
+      { mesaj: "Eve yeni geldim, şimdi bir şeyler hazırlayacağım. Sen ne yedin?", aciklama: "Günlük ve samimi bir sohbet akışı." },
+    ],
+  },
+];
+
+const fallbackOneriler: MesajOnerisi[] = [
+  { mesaj: "İlginç bir soru, bunu yüz yüze konuşsak daha iyi olur bence. 😄", aciklama: "Sohbeti canlı tutar ve buluşma ihtimali açar." },
+  { mesaj: "Seninle aynı şeyi düşünüyordum, bu tesadüf mü yoksa?", aciklama: "Karşı tarafa yakınlık hissettirir." },
+  { mesaj: "Bunu biraz daha açar mısın, tam anlayamadım.", aciklama: "Merak uyandırarak sohbeti derinleştirir." },
+];
+
+function demoOneriUret(mesaj: string): MesajOnerisi[] {
+  const kucuk = mesaj.toLocaleLowerCase("tr-TR");
+
+  /* Kelime eşleşmesine göre paket seç */
+  for (const paket of demoPaketler) {
+    if (paket.keywords.some((k) => kucuk.includes(k))) {
+      return paket.oneriler;
+    }
+  }
+
+  /* Eşleşme yoksa karıştırılmış fallback */
+  return [...fallbackOneriler].sort(() => Math.random() - 0.5);
+}
+
+/* ---------- Bileşen ---------- */
+
 export function MiniDemo() {
   const [mesaj, setMesaj] = useState("");
   const [oneriler, setOneriler] = useState<MesajOnerisi[]>([]);
   const [yukleniyor, setYukleniyor] = useState(false);
-  const [hata, setHata] = useState<string | null>(null);
   const [kopyalandi, setKopyalandi] = useState<number | null>(null);
 
   async function gonder() {
     if (!mesaj.trim()) return;
     setYukleniyor(true);
-    setHata(null);
     setOneriler([]);
 
-    try {
-      const res = await fetch("/api/oneri", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sohbet: [{ gonderen: "o", metin: mesaj.trim() }],
-          ton: "esprili",
-          asama: "yazisiyoruz",
-          hedef: "sohbeti_surdur",
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setHata(data.hata || "Bir hata oluştu.");
-        return;
-      }
-      setOneriler(data.oneriler);
-    } catch {
-      setHata("Bağlantı hatası. Tekrar dene.");
-    } finally {
-      setYukleniyor(false);
-    }
+    /* API çağrısı YOK — tamamen client-side demo */
+    await new Promise((r) => setTimeout(r, 800));
+    setOneriler(demoOneriUret(mesaj.trim()));
+    setYukleniyor(false);
   }
 
   async function kopyala(metin: string, index: number) {
@@ -60,7 +127,7 @@ export function MiniDemo() {
             Hemen Dene
           </span>
           <span className="text-xs text-slate-400">
-            Ton ve aşama otomatik ayarlandı
+            Ücretsiz demo — API çağrısı yok
           </span>
         </div>
 
@@ -108,12 +175,6 @@ export function MiniDemo() {
           </button>
         </div>
 
-        {hata && (
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {hata}
-          </div>
-        )}
-
         {oneriler.length > 0 && (
           <div className="mt-6 space-y-3">
             <p className="text-sm font-semibold text-slate-500">
@@ -128,9 +189,14 @@ export function MiniDemo() {
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-violet-600 text-sm font-bold text-white">
                     {i + 1}
                   </span>
-                  <p className="min-w-0 flex-1 text-[15px] leading-7 text-slate-900">
-                    {o.mesaj}
-                  </p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[15px] leading-7 text-slate-900">
+                      {o.mesaj}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      {o.aciklama}
+                    </p>
+                  </div>
                 </div>
                 <div className="mt-2 flex justify-end">
                   <button
