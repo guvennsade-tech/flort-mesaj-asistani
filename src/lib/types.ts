@@ -30,6 +30,12 @@ export interface FeedbackRequest {
   hedef: Hedef;
 }
 
+export interface HataState {
+  mesaj: string;
+  tip: "rateLimit" | "baglanti" | "sunucu" | "input" | "genel";
+  retryAfter?: number; // saniye
+}
+
 export const tonlar: { id: Ton; etiket: string; emoji: string }[] = [
   { id: "samimi", etiket: "Samimi", emoji: "🤗" },
   { id: "esprili", etiket: "Esprili", emoji: "😄" },

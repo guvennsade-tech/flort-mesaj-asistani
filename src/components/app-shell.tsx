@@ -9,6 +9,7 @@ import {
   Hedef,
   SohbetMesaji,
   MesajOnerisi,
+  HataState,
   tonlar,
   asamalar,
   hedefler,
@@ -32,12 +33,6 @@ export function AssistantApp() {
   const [hedef, setHedef] = useState<Hedef>("sohbeti_surdur");
   const [oneriler, setOneriler] = useState<MesajOnerisi[]>([]);
   const [yukleniyor, setYukleniyor] = useState(false);
-  interface HataState {
-    mesaj: string;
-    tip: "rateLimit" | "baglanti" | "sunucu" | "input" | "genel";
-    retryAfter?: number; // saniye
-  }
-
   const [hata, setHata] = useState<HataState | null>(null);
   const [kalanSure, setKalanSure] = useState<number>(0);
   const [kopyalandi, setKopyalandi] = useState<number | null>(null);
