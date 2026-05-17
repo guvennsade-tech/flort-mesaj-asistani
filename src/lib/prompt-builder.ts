@@ -50,9 +50,6 @@ export function buildPrompt({
   asama,
   hedef,
 }: PromptParams): string {
-  const sonMesaj = sohbet[sohbet.length - 1];
-  const sonMesajSahibi = sonMesaj?.gonderen === "o" ? "karşı taraf" : "sen";
-
   const ekstra = eklemekIstedikleri?.trim()
     ? `\nKullanıcının notu: "${eklemekIstedikleri.trim()}"`
     : "";
@@ -66,7 +63,7 @@ Sohbet geçmişi (kronolojik sırayla, en son altta):
 ${sohbetMetni}
 ---
 
-Son mesajı yazan: ${sonMesajSahibi}
+Kullanıcı bir sonraki mesajı yazmak istiyor. Sohbetin akışına göre en doğal devamı öner.
 ${ekstra}
 
 İlişki Aşaması: ${asamaAciklamalari[asama]}
