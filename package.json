@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy": "npx vercel@latest --prod",
+    "deploy:preview": "npx vercel@latest"
   },
   "dependencies": {
     "next": "16.2.6",

@@ -1,36 +1,149 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Flört Mesajı Asistanı
 
-## Getting Started
+İlişki aşamana ve tonuna göre en iyi flört mesajını bulan AI destekli web uygulaması.
 
-First, run the development server:
+## Özellikler
+
+- **Sohbet bağlamına uygun öneriler**: Karşı tarafın mesajlarına ve sohbet geçmişine göre kişiselleştirilmiş cevaplar üretir
+- **3 farklı ton**: Samimi, Esprili, Romantik
+- **4 ilişki aşaması**: Yeni tanıştık, Yazışıyoruz, Yakınız, Ciddi ilişki
+- **3 hedef**: Sohbeti sürdür, Buluşma teklif et, İlgi göster
+- **3 alternatif mesaj önerisi**: Her zaman farklı yaklaşımlar arasından seçim yapabilirsin
+- **İçerik moderasyon filtresi**: Uygunsuz veya manipülatif içerikler otomatik engellenir
+- **PWA desteği**: Telefonuna ekle, native app gibi kullan
+- **Tek dokunuşla kopyala**: Beğendiğin mesajı anında panoya kopyala
+- **Favoriler**: Beğendiğin mesajları kaydet ve sonra tekrar görüntüle
+- **Geçmiş**: Daha önce aldığın tüm önerileri görüntüle ve yönet
+- **Hesap gerekmez**: Tamamen anonim, localStorage tabanlı
+
+## Hızlı Başlangıç
+
+### 1. Bağımlılıkları yükle
+
+```bash
+npm install
+```
+
+### 2. Ortam değişkenlerini ayarla
+
+`.env.local.example` dosyasını `.env.local` olarak kopyala ve kendi OpenAI API anahtarını ekle:
+
+```bash
+cp .env.local.example .env.local
+```
+
+`.env.local` dosyasını düzenle:
+
+```
+OPENAI_API_KEY=sk-your-openai-api-key-here
+```
+
+API anahtarını [OpenAI Platform](https://platform.openai.com/api-keys) adresinden oluşturabilirsin.
+
+### 3. Geliştirme sunucusunu başlat
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Tarayıcıda aç: [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Vercel (tek komut)
 
-## Learn More
+İlk kurulum (bir kere yapılır):
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# 1. Vercel CLI'yi global yükle (opsiyonel, npx de çalışır)
+npm i -g vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# 2. Login ol (tarayıcı açılır, yetkilendir)
+vercel login
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# 3. Projeyi Vercel'e bağla
+vercel link
+```
 
-## Deploy on Vercel
+Bundan sonra her deploy sadece:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run deploy
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Preview deploy için:
+
+```bash
+npm run deploy:preview
+```
+
+> **Önemli:** İlk production deploy sonrası Vercel dashboard'dan `OPENAI_API_KEY` ortam değişkenini ekle. Settings → Environment Variables → `OPENAI_API_KEY`.
+
+## Teknolojiler
+
+- Next.js 16 (App Router, Turbopack)
+- React 19
+- TypeScript
+- Tailwind CSS
+- OpenAI GPT-4o-mini API
+
+## Proje Yapısı
+
+```
+src/
+  app/              # Next.js App Router sayfaları
+    api/            # API route'ları (oneri, feedback)
+    asistan/        # Ana asistan sayfası
+    favoriler/      # Kaydedilen favoriler
+    gecmis/         # Öneri geçmişi
+  components/       # React bileşenleri
+  lib/              # Yardımcı fonksiyonlar ve tipler
+public/             # Statik dosyalar (manifest, ikonlar)
+```
+
+## Güvenlik, Gizlilik ve Maliyet Kontrolü
+
+- **Mesajlar sunucuda saklanmaz**: Sohbet geçmişi ve mesajlar sadece AI'a anlık olarak iletilir, cevap üretildikten sonra otomatik olarak silinir.
+- **Anonim kullanım**: Kullanıcı hesabı veya kimlik doğrulama gerektirmez.
+- **Rate limiting**: Saat başına 10 istek ile kötüye kullanım önlenir.
+- **Günlük bütçe limiti**: Varsayılan 1 USD/gün. Limit aşıldığında API istekleri otomatik reddedilir.
+- **Token ve maliyet takibi**: Her isteğin token kullanımı ve tahmini maliyeti sunucuda tutulur. `/api/usage` endpoint'inden canlı olarak izlenebilir.
+- **İçerik filtresi**: Türkçe küfür, yetişkin içerik ve manipülatif mesajlar otomatik olarak reddedilir.
+
+### Maliyet Takibi
+
+Günlük kullanımı ve kalan bütçeyi görüntüle:
+
+```bash
+curl http://localhost:3000/api/usage
+```
+
+Örnek yanıt:
+
+```json
+{
+  "date": "2026-05-17",
+  "requests": 12,
+  "promptTokens": 3400,
+  "completionTokens": 890,
+  "totalTokens": 4290,
+  "estimatedCost": 0.0642,
+  "budget": 1.0,
+  "remainingBudget": 0.9358,
+  "budgetExceeded": false
+}
+```
+
+Bütçeyi değiştirmek için `.env.local` içine ekle:
+
+```
+DAILY_BUDGET_USD=2.50
+```
+
+## Katkıda Bulunma
+
+Katkılar memnuniyetle karşılanır. Lütfen önce bir issue açın veya mevcut issue'ları kontrol edin.
+
+## Lisans
+
+MIT
