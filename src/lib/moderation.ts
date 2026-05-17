@@ -1,7 +1,7 @@
 import { MAX_METIN } from "./constants";
 
 /* ---------- Uzunluk limitleri ---------- */
-const MIN_MESAJ_UZUNLUK = 10; /* "hi" veya "lol" geçmesin, anlamlı context olsun */
+const MIN_MESAJ_UZUNLUK = 2; /* Kullanıcı tek kelime bile girebilsin, ama anlamsız filtreler yakalar */
 
 /* ---------- Türkçe uygunsuz kelimeler ---------- */
 const uygunsuzKelimeler = [
@@ -111,12 +111,36 @@ function normalizeLeetspeak(text: string): string {
 }
 
 /**
- * Aynı karakterin abartılı tekrar edip etmediğini kontrol eder.
- * Örn: "aaaaaa", "!!!!!!", "ooooldum"
+ * Metinde hiç harf (a-z, A-Z, Türkçe karakterler) yoksa true döner.
+ * Örn: "12345", "!!!!", "@#$%" → true
  */
-function asiriTekrarVarMi(text: string): boolean {
+function hicHarfYok(text: string): boolean {
+  return !/[a-zA-ZçÇğĞıİöÖşŞüÜâêîôû]/i.test(text);
+}
+
+/**
+ * Aynı karakterin abartılı tekrar edip etmediğini kontrol eder (spam).
+ * Örn: "aaaaaa", "!!!!!!", "ooooldum", "mmmm"
+ */
+function TEKRAR_SPAM(text: string): boolean {
   /* 4 veya daha fazla aynı karakter ard arda */
   return /(.)\1{3,}/.test(text);
+}
+
+/**
+ * Metinde çok düşük çeşitlilik varsa true döner.
+ * Örn: "abababab" (2 farklı karakter), "xyxyxyxy" (2 farklı karakter)
+ * Gerçek bir mesajda genellikle 5+ farklı harf olur.
+ */
+function cokDusukCesitlilik(text: string): boolean {
+  const sadeceHarfler = text.replace(/[^a-zA-ZçÇğĞıİöÖşŞüÜâêîôû]/g, "");
+  if (sadeceHarfler.length === 0) return false; /* hicHarfYok zaten yakalar */
+
+  const benzersizHarfler = new Set(sadeceHarfler.toLocaleLowerCase("tr-TR"));
+  /* 10+ karakter varsa ama sadece 3 veya daha az farklı harf kullanılmışsa anlamsız */
+  if (sadeceHarfler.length >= 10 && benzersizHarfler.size <= 3) return true;
+
+  return false;
 }
 
 /**
@@ -169,10 +193,24 @@ export function icerikKontrol(mesaj: string): {
   const leetNormalized = normalizeLeetspeak(kucukMesaj);
 
   /* ========== 2. ANLAMSIZ / SPAM KONTROLÜ ========== */
-  if (asiriTekrarVarMi(temizMesaj)) {
+  if (hicHarfYok(temizMesaj)) {
     return {
       guvenli: false,
-      sebep: "Mesaj anlamsız veya spam içerik gibi görünüyor. Lütfen gerçek bir sohbet girin.",
+      sebep: "Mesaj anlamsız görünüyor. Lütfen gerçek bir sohbet girin.",
+    };
+  }
+
+  if (TEKRAR_SPAM(temizMesaj)) {
+    return {
+      guvenli: false,
+      sebep: "Mesaj tekrarlanan karakterler içeriyor. Lütfen gerçek bir sohbet girin.",
+    };
+  }
+
+  if (cokDusukCesitlilik(temizMesaj)) {
+    return {
+      guvenli: false,
+      sebep: "Mesaj anlamsız görünüyor. Lütfen gerçek bir sohbet girin.",
     };
   }
 
