@@ -26,7 +26,7 @@ npm install
 
 ### 2. Ortam değişkenlerini ayarla
 
-`.env.local.example` dosyasını `.env.local` olarak kopyala ve kendi OpenAI API anahtarını ekle:
+`.env.local.example` dosyasını `.env.local` olarak kopyala ve değerlerini gir:
 
 ```bash
 cp .env.local.example .env.local
@@ -36,7 +36,12 @@ cp .env.local.example .env.local
 
 ```
 OPENAI_API_KEY=sk-your-openai-api-key-here
+UPSTASH_REDIS_REST_URL=https://your-db.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your-token-here
+DAILY_BUDGET_USD=1.00
 ```
+
+> **Not:** Upstash Redis ücretsizdir. [console.upstash.com](https://console.upstash.com/redis) adresinden 1 dakikada oluşturabilirsin. Redis olmadan rate limit ve bütçe takibi serverless'ta çalışmaz.
 
 API anahtarını [OpenAI Platform](https://platform.openai.com/api-keys) adresinden oluşturabilirsin.
 
@@ -77,7 +82,12 @@ Preview deploy için:
 npm run deploy:preview
 ```
 
-> **Önemli:** İlk production deploy sonrası Vercel dashboard'dan `OPENAI_API_KEY` ortam değişkenini ekle. Settings → Environment Variables → `OPENAI_API_KEY`.
+> **Önemli:** İlk production deploy sonrası Vercel dashboard'dan aşağıdaki ortam değişkenlerini ekle:
+> - `OPENAI_API_KEY`
+> - `UPSTASH_REDIS_REST_URL`
+> - `UPSTASH_REDIS_REST_TOKEN`
+> - `DAILY_BUDGET_USD` (opsiyonel, varsayılan: 1.0)
+> - `ADMIN_SECRET` (opsiyonel, /api/usage koruması için)
 
 ## Teknolojiler
 
@@ -105,9 +115,9 @@ public/             # Statik dosyalar (manifest, ikonlar)
 
 - **Mesajlar sunucuda saklanmaz**: Sohbet geçmişi ve mesajlar sadece AI'a anlık olarak iletilir, cevap üretildikten sonra otomatik olarak silinir.
 - **Anonim kullanım**: Kullanıcı hesabı veya kimlik doğrulama gerektirmez.
-- **Rate limiting**: Saat başına 10 istek ile kötüye kullanım önlenir.
+- **Rate limiting**: Saat başına 10 istek ile kötüye kullanım önlenir. Upstash Redis ile serverless ortamında da doğru çalışır.
 - **Günlük bütçe limiti**: Varsayılan 1 USD/gün. Limit aşıldığında API istekleri otomatik reddedilir.
-- **Token ve maliyet takibi**: Her isteğin token kullanımı ve tahmini maliyeti sunucuda tutulur. `/api/usage` endpoint'inden canlı olarak izlenebilir.
+- **Token ve maliyet takibi**: Her isteğin token kullanımı ve tahmini maliyeti Redis'te saklanır. `/api/usage` endpoint'inden `ADMIN_SECRET` ile izlenebilir.
 - **İçerik filtresi**: Türkçe küfür, yetişkin içerik ve manipülatif mesajlar otomatik olarak reddedilir.
 
 ### Maliyet Takibi

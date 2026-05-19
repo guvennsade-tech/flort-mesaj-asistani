@@ -36,10 +36,20 @@ export interface HataState {
   retryAfter?: number; // saniye
 }
 
+export interface GecmisKaydi {
+  id: string;
+  tarih: string;
+  sohbet: SohbetMesaji[];
+  ton: Ton;
+  asama: IliskiAsamasi;
+  hedef: Hedef;
+  oneriler: MesajOnerisi[];
+}
+
 export const tonlar: { id: Ton; etiket: string; emoji: string }[] = [
-  { id: "samimi", etiket: "Samimi", emoji: "🤗" },
-  { id: "esprili", etiket: "Esprili", emoji: "😄" },
-  { id: "romantik", etiket: "Romantik", emoji: "❤️" },
+  { id: "samimi", etiket: "Samimi", emoji: "" },
+  { id: "esprili", etiket: "Esprili", emoji: "" },
+  { id: "romantik", etiket: "Romantik", emoji: "" },
 ];
 
 export const asamalar: {
@@ -47,10 +57,10 @@ export const asamalar: {
   etiket: string;
   emoji: string;
 }[] = [
-  { id: "yeni_tanistik", etiket: "Yeni tanıştık", emoji: "👋" },
-  { id: "yazisiyoruz", etiket: "Yazışıyoruz", emoji: "💬" },
-  { id: "yakiniz", etiket: "Yakınız", emoji: "💕" },
-  { id: "ciddi", etiket: "Ciddi ilişki", emoji: "💍" },
+  { id: "yeni_tanistik", etiket: "Yeni tanıştık", emoji: "" },
+  { id: "yazisiyoruz", etiket: "Yazışıyoruz", emoji: "" },
+  { id: "yakiniz", etiket: "Yakınız", emoji: "" },
+  { id: "ciddi", etiket: "Ciddi ilişki", emoji: "" },
 ];
 
 export const hedefler: { id: Hedef; etiket: string; aciklama: string }[] = [

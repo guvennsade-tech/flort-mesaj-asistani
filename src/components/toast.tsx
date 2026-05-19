@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Check, X, Info } from "lucide-react";
 
 interface Toast {
   id: number;
@@ -59,9 +60,9 @@ function ToastItem({
   };
 
   const ikonlar = {
-    basari: "✓",
-    hata: "✕",
-    bilgi: "ⓘ",
+    basari: <Check className="h-4 w-4" />,
+    hata: <X className="h-4 w-4" />,
+    bilgi: <Info className="h-4 w-4" />,
   };
 
   return (
@@ -80,7 +81,7 @@ function ToastItem({
         aria-label="Kapat"
         type="button"
       >
-        ✕
+        <X className="h-4 w-4" />
       </button>
     </div>
   );

@@ -3,35 +3,72 @@ import { MAX_METIN } from "./constants";
 /* ---------- Uzunluk limitleri ---------- */
 const MIN_MESAJ_UZUNLUK = 2; /* Kullanıcı tek kelime bile girebilsin, ama anlamsız filtreler yakalar */
 
-/* ---------- Türkçe uygunsuz kelimeler ---------- */
-const uygunsuzKelimeler = [
-  "sikiş", "sikim", "sikiyim", "sikmek", "siktirir", "sikerim", "sik",
-  "yarrak", "amcık", "götveren", "kaltak", "fahişe", "pezevenk",
-  "orospu", "piç", "ibne", "şerefsiz", "kevaşe", "kâfir",
-  "allah", "peygamber", /* dini hakaretler */
-  "dalyarak", "göt", "am", "yavşak", "çomar", "kezban",
-  "amk", "aq", "mk", "sg",
+/* ---------- Türkçe uygunsuz kelimeler (word boundary ile) ---------- */
+const uygunsuzKelimeler: RegExp[] = [
+  /\bsikiş\b/iu,
+  /\bsikim\b/iu,
+  /\bsikiyim\b/iu,
+  /\bsikmek\b/iu,
+  /\bsiktirir\b/iu,
+  /\bsikerim\b/iu,
+  /\byarrak\b/iu,
+  /\bamcık\b/iu,
+  /\bgötveren\b/iu,
+  /\bkaltak\b/iu,
+  /\bfahişe\b/iu,
+  /\bpezevenk\b/iu,
+  /\borospu\b/iu,
+  /\bpiç\b/iu,
+  /\bibne\b/iu,
+  /\bşerefsiz\b/iu,
+  /\bkevaşe\b/iu,
+  /\bdalyarak\b/iu,
+  /\bamk\b/iu,
+  /\baq\b/iu,
+  /\byavşak\b/iu,
+  /\bçomar\b/iu,
+  /\bkezban\b/iu,
 ];
 
-/* ---------- İngilizce uygunsuz kelimeler ---------- */
-const englishProfanity = [
-  "fuck", "shit", "bitch", "asshole", "cunt", "dick", "pussy", "cock",
-  "damn", "hell", "bastard", "slut", "whore", "nigger", "fag", "retard",
-  "bullshit", "motherfucker", "cum", "anal", "blowjob", "handjob",
+/* ---------- İngilizce uygunsuz kelimeler (word boundary ile) ---------- */
+const englishProfanity: RegExp[] = [
+  /\bfuck\b/i,
+  /\bshit\b/i,
+  /\bbitch\b/i,
+  /\basshole\b/i,
+  /\bcunt\b/i,
+  /\bdick\b/i,
+  /\bpussy\b/i,
+  /\bcock\b/i,
+  /\bdamn\b/i,
+  /\bbastard\b/i,
+  /\bslut\b/i,
+  /\bwhore\b/i,
+  /\bnigger\b/i,
+  /\bfag\b/i,
+  /\bretard\b/i,
+  /\bbullshit\b/i,
+  /\bmotherfucker\b/i,
+  /\bcum\b/i,
+  /\banal\b/i,
+  /\bblowjob\b/i,
+  /\bhandjob\b/i,
 ];
 
 /* ---------- Şifreli/leetspeak Türkçe pattern'ları ---------- */
 const sifreliUygunsuzlar = [
-  /\bs[iı!1|]k(?:i[şs]|im|iyim|er|tir|mek|erim)?\b/,
-  /\by[a@4]rr[a@4]k\b/,
-  /\boro[sş5]pu\b/,
-  /\bp[iı!1|]ç\b/,
-  /\b[a@4]mk\b/,
-  /\b[a@4]q\b/,
-  /\bg[oö0]t(?:veren)?\b/,
-  /\b[a@4]mc[iı!1|]k\b/,
-  /\b[oö0]r[oö0]sp[uü]\b/,
-  /\bs[iı!1|]k[iı!1|]ş\b/,
+  /\bs[iı!1|]k(?:i[şs]|im|iyim|er|tir|mek|erim)?\b/i,
+  /\by[a@4]rr[a@4]k\b/i,
+  /\boro[sş5]pu\b/i,
+  /\bp[iı!1|]ç\b/i,
+  /\b[a@4]mk\b/i,
+  /\b[a@4]q\b/i,
+  /\bg[oö0]tveren\b/i,
+  /\b[a@4]mc[iı!1|]k\b/i,
+  /\b[oö0]r[oö0]sp[uü]\b/i,
+  /\bs[iı!1|]k[iı!1|]ş\b/i,
+  /\bs[g6]\b/i,
+  /\bm[kq]\b/i,
 ];
 
 /* ---------- Yetişkin / +18 içerik ---------- */
@@ -65,6 +102,22 @@ const riskliManipulasyon = [
   /\bkendini öldür\b/,
 ];
 
+/* ---------- Prompt injection pattern'ları ---------- */
+const PROMPT_INJECTION: RegExp[] = [
+  /önceki.{0,30}(unut|sil|yoksay)/i,
+  /ignore.{0,30}(previous|instruction|system)/i,
+  /forget.{0,30}(previous|instruction|above)/i,
+  /\byou are now\b/i,
+  /\bpretend (you are|to be)\b/i,
+  /\broleplay as\b/i,
+  /\bdan\b.{0,20}mode/i,
+  /\bdeveloper mode\b/i,
+  /\bjailbreak\b/i,
+  /\bsystem\s*:/i,
+  /\[INST\]/i,
+  /<<SYS>>/i,
+];
+
 /* ---------- Rastgele tuş vuruşu pattern'ları (anlamsız içerik) ---------- */
 const anlamsizPatternler = [
   /^(?:asdf|qwer|zxcv|jklş|jklı|mnbv|lkjh|poiü|qwerty|12345|qwertz)+$/i,
@@ -78,6 +131,8 @@ const anlamsizPatternler = [
 function normalizeLeetspeak(text: string): string {
   return (
     text
+      /* Unicode homoglyph normalizasyonu (Cyrillic → Latin vb.) */
+      .normalize("NFKC")
       /* sayılar */
       .replace(/0/g, "o")
       .replace(/1/g, "i")
@@ -221,9 +276,9 @@ export function icerikKontrol(mesaj: string): {
     };
   }
 
-  /* ========== 3. TÜRKÇE UYGUNSUZ KELİMELER ========== */
-  for (const kelime of uygunsuzKelimeler) {
-    if (kucukMesaj.includes(kelime)) {
+  /* ========== 3. TÜRKÇE UYGUNSUZ KELİMELER (word boundary) ========== */
+  for (const pattern of uygunsuzKelimeler) {
+    if (pattern.test(kucukMesaj) || pattern.test(leetNormalized)) {
       return {
         guvenli: false,
         sebep: "Mesajınız uygunsuz içerik barındırıyor.",
@@ -231,9 +286,9 @@ export function icerikKontrol(mesaj: string): {
     }
   }
 
-  /* ========== 4. İNGİLİZCE UYGUNSUZ KELİMELER ========== */
-  for (const kelime of englishProfanity) {
-    if (kucukMesaj.includes(kelime) || leetNormalized.includes(kelime)) {
+  /* ========== 4. İNGİLİZCE UYGUNSUZ KELİMELER (word boundary) ========== */
+  for (const pattern of englishProfanity) {
+    if (pattern.test(kucukMesaj) || pattern.test(leetNormalized)) {
       return {
         guvenli: false,
         sebep: "Mesajınız uygunsuz içerik barındırıyor.",
@@ -267,6 +322,16 @@ export function icerikKontrol(mesaj: string): {
       return {
         guvenli: false,
         sebep: "Baskı veya manipülasyon içeren mesajlara yardımcı olamıyorum.",
+      };
+    }
+  }
+
+  /* ========== 8. PROMPT INJECTION ========== */
+  for (const pattern of PROMPT_INJECTION) {
+    if (pattern.test(temizMesaj)) {
+      return {
+        guvenli: false,
+        sebep: "Bu tür içeriklerle yardımcı olamıyorum.",
       };
     }
   }

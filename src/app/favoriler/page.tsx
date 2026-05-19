@@ -3,50 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ErrorBoundary } from "@/components/error-boundary";
-import {
-  Ton,
-  IliskiAsamasi,
-  Hedef,
-  tonlar,
-  asamalar,
-  hedefler,
-} from "@/lib/types";
+import { MesajOnerisi } from "@/lib/types";
 import { BrandMark } from "@/components/brand-mark";
 import { ToastContainer, useToast } from "@/components/toast";
-
-interface FavoriItem {
-  id: string;
-  mesaj: string;
-  ton: Ton;
-  asama: IliskiAsamasi;
-  hedef: Hedef;
-}
-
-function parseFavori(id: string): FavoriItem | null {
-  // format: ton:asama:hedef:mesaj
-  const parts = id.split(":");
-  if (parts.length < 4) return null;
-
-  const [ton, asama, hedef, ...mesajParts] = parts;
-  const mesaj = mesajParts.join(":"); // mesaj içinde : olabilir
-
-  const gecerliTon = tonlar.some((t) => t.id === ton);
-  const gecerliAsama = asamalar.some((a) => a.id === asama);
-  const gecerliHedef = hedefler.some((h) => h.id === hedef);
-
-  if (!gecerliTon || !gecerliAsama || !gecerliHedef) return null;
-
-  return {
-    id,
-    mesaj,
-    ton: ton as Ton,
-    asama: asama as IliskiAsamasi,
-    hedef: hedef as Hedef,
-  };
-}
+import { Heart, Copy, Trash2, ArrowRight } from "lucide-react";
 
 function FavorilerContent() {
-  const [favoriler, setFavoriler] = useState<FavoriItem[]>([]);
+  const [favoriler, setFavoriler] = useState<MesajOnerisi[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const { toasts, goster: toastGoster, kapat: toastKapat } = useToast();
 
@@ -56,27 +19,32 @@ function FavorilerContent() {
       if (kayitli) {
         const parsed = JSON.parse(kayitli);
         if (Array.isArray(parsed)) {
-          const items = parsed
-            .filter((item): item is string => typeof item === "string")
-            .map(parseFavori)
-            .filter((item): item is FavoriItem => item !== null);
-          setFavoriler(items);
+          const valid = parsed.filter(
+            (item: unknown) =>
+              typeof item === "object" &&
+              item !== null &&
+              typeof (item as MesajOnerisi).mesaj === "string" &&
+              typeof (item as MesajOnerisi).aciklama === "string"
+          ) as MesajOnerisi[];
+          setFavoriler(valid);
         }
       }
     } catch {
-      // ignore
+      window.localStorage.removeItem("fm_favoriler");
     }
     setYukleniyor(false);
   }, []);
 
-  function sil(id: string) {
-    setFavoriler((prev) => prev.filter((f) => f.id !== id));
+  function sil(mesaj: string) {
+    setFavoriler((prev) => prev.filter((f) => f.mesaj !== mesaj));
     try {
       const kayitli = window.localStorage.getItem("fm_favoriler");
       if (kayitli) {
         const parsed = JSON.parse(kayitli);
         if (Array.isArray(parsed)) {
-          const yeni = parsed.filter((item: string) => item !== id);
+          const yeni = parsed.filter(
+            (item: MesajOnerisi) => item.mesaj !== mesaj
+          );
           window.localStorage.setItem("fm_favoriler", JSON.stringify(yeni));
         }
       }
@@ -84,6 +52,13 @@ function FavorilerContent() {
       // ignore
     }
     toastGoster("Favoriden kaldırıldı", "bilgi");
+  }
+
+  function tumunuSil() {
+    if (!confirm("Tüm favorilerini silmek istediğine emin misin? Bu işlem geri alınamaz.")) return;
+    setFavoriler([]);
+    window.localStorage.removeItem("fm_favoriler");
+    toastGoster("Tüm favoriler silindi", "bilgi");
   }
 
   async function kopyala(metin: string) {
@@ -95,12 +70,6 @@ function FavorilerContent() {
     }
   }
 
-  const tonEtiket = (id: Ton) => tonlar.find((t) => t.id === id)?.etiket || id;
-  const asamaEtiket = (id: IliskiAsamasi) =>
-    asamalar.find((a) => a.id === id)?.etiket || id;
-  const hedefEtiket = (id: Hedef) =>
-    hedefler.find((h) => h.id === id)?.etiket || id;
-
   return (
     <main className="min-h-screen bg-[#f5f7fb] text-slate-950 sm:p-5">
       <div className="mx-auto min-h-screen sm:min-h-[calc(100vh-40px)] max-w-7xl overflow-hidden sm:rounded-[22px] border-0 sm:border border-slate-200 bg-white shadow-none sm:shadow-2xl shadow-slate-200/80">
@@ -110,6 +79,15 @@ function FavorilerContent() {
             <BrandMark />
           </Link>
           <div className="flex items-center gap-2">
+            {favoriler.length > 0 && (
+              <button
+                onClick={tumunuSil}
+                className="rounded-xl border border-white/15 px-4 py-2 text-sm text-red-200 hover:bg-red-500/20 transition-colors"
+                type="button"
+              >
+                Tümünü Sil
+              </button>
+            )}
             <Link
               href="/asistan"
               className="rounded-xl border border-white/15 px-4 py-2 text-sm text-slate-200 hover:bg-white/10 transition-colors"
@@ -134,29 +112,31 @@ function FavorilerContent() {
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-pink-500" />
             </div>
           ) : favoriler.length === 0 ? (
-            <div className="flex min-h-[300px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-100 to-violet-100 text-3xl">
-                ♡
+            <div className="flex min-h-[400px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center">
+              <div className="animate-float mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-pink-100 via-violet-100 to-indigo-100 shadow-lg shadow-pink-100/50">
+                <Heart className="h-10 w-10 text-pink-500" strokeWidth={1.5} />
               </div>
-              <h3 className="text-lg font-bold text-slate-900">
+              <h3 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
                 Henüz favori yok
               </h3>
-              <p className="mt-2 max-w-xs text-sm leading-6 text-slate-500">
-                Asistanda beğendiğin mesajların üzerindeki kalp ikonuna
-                tıklayarak buraya kaydedebilirsin.
+              <p className="mt-3 max-w-xs text-sm leading-7 text-slate-500">
+                Asistanda beğendiğin mesajların üzerindeki
+                <br />
+                kalp ikonuna tıklayarak buraya kaydedebilirsin.
               </p>
               <Link
                 href="/asistan"
-                className="mt-6 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-pink-200 hover:scale-[1.01] transition-transform"
+                className="mt-7 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-pink-200 transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:shadow-[0_0_24px_rgba(236,72,153,0.3)] hover:-translate-y-px active:scale-[0.97]"
               >
                 Asistanı Aç
+                <ArrowRight className="h-4 w-4" strokeWidth={2} />
               </Link>
             </div>
           ) : (
             <div className="space-y-4">
               {favoriler.map((favori, index) => (
                 <article
-                  key={favori.id}
+                  key={favori.mesaj}
                   className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
                 >
                   <div className="p-5">
@@ -169,17 +149,11 @@ function FavorilerContent() {
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 pl-10">
-                      <span className="rounded-full bg-pink-50 px-3 py-1 text-xs font-semibold text-pink-600">
-                        {tonEtiket(favori.ton)}
-                      </span>
-                      <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-600">
-                        {asamaEtiket(favori.asama)}
-                      </span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                        {hedefEtiket(favori.hedef)}
-                      </span>
-                    </div>
+                    {favori.aciklama && (
+                      <p className="pl-10 text-sm leading-6 text-slate-500">
+                        {favori.aciklama}
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex border-t border-slate-100">
@@ -188,15 +162,15 @@ function FavorilerContent() {
                       className="flex flex-1 flex-col items-center justify-center gap-1 px-3 py-4 min-h-[56px] text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 active:bg-slate-100"
                       type="button"
                     >
-                      <span className="text-xl">⧉</span>
+                      <Copy className="h-5 w-5" strokeWidth={1.5} />
                       Kopyala
                     </button>
                     <button
-                      onClick={() => sil(favori.id)}
+                      onClick={() => sil(favori.mesaj)}
                       className="flex flex-1 flex-col items-center justify-center gap-1 border-l border-slate-100 px-3 py-4 min-h-[56px] text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 active:bg-red-100"
                       type="button"
                     >
-                      <span className="text-xl">🗑</span>
+                      <Trash2 className="h-5 w-5" strokeWidth={1.5} />
                       Sil
                     </button>
                   </div>

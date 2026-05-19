@@ -9,22 +9,14 @@ import {
   Hedef,
   SohbetMesaji,
   MesajOnerisi,
+  GecmisKaydi,
   tonlar,
   asamalar,
   hedefler,
 } from "@/lib/types";
 import { BrandMark } from "@/components/brand-mark";
 import { ToastContainer, useToast } from "@/components/toast";
-
-interface GecmisKaydi {
-  id: string;
-  tarih: string;
-  sohbet: SohbetMesaji[];
-  ton: Ton;
-  asama: IliskiAsamasi;
-  hedef: Hedef;
-  oneriler: MesajOnerisi[];
-}
+import { RotateCcw, ChevronDown, Copy, Trash2, ArrowRight } from "lucide-react";
 
 function formatTarih(iso: string): string {
   const d = new Date(iso);
@@ -48,11 +40,22 @@ function GecmisContent() {
       if (kayitli) {
         const parsed = JSON.parse(kayitli);
         if (Array.isArray(parsed)) {
-          setGecmis(parsed.slice(0, 50));
+          const valid = parsed
+            .filter(
+              (item: unknown): item is GecmisKaydi =>
+                typeof item === "object" &&
+                item !== null &&
+                typeof (item as GecmisKaydi).id === "string" &&
+                typeof (item as GecmisKaydi).tarih === "string" &&
+                Array.isArray((item as GecmisKaydi).sohbet) &&
+                Array.isArray((item as GecmisKaydi).oneriler)
+            )
+            .slice(0, 50);
+          setGecmis(valid);
         }
       }
     } catch {
-      // ignore
+      window.localStorage.removeItem("fm_gecmis");
     }
     setYukleniyor(false);
   }, []);
@@ -72,6 +75,13 @@ function GecmisContent() {
       // ignore
     }
     toastGoster("Geçmişten silindi", "bilgi");
+  }
+
+  function tumunuSil() {
+    if (!confirm("Tüm geçmiş kayıtlarını silmek istediğine emin misin? Bu işlem geri alınamaz.")) return;
+    setGecmis([]);
+    window.localStorage.removeItem("fm_gecmis");
+    toastGoster("Tüm geçmiş silindi", "bilgi");
   }
 
   async function kopyala(metin: string) {
@@ -98,6 +108,15 @@ function GecmisContent() {
             <BrandMark />
           </Link>
           <div className="flex items-center gap-2">
+            {gecmis.length > 0 && (
+              <button
+                onClick={tumunuSil}
+                className="rounded-xl border border-white/15 px-4 py-2 text-sm text-red-200 hover:bg-red-500/20 transition-colors"
+                type="button"
+              >
+                Tümünü Sil
+              </button>
+            )}
             <Link
               href="/asistan"
               className="rounded-xl border border-white/15 px-4 py-2 text-sm text-slate-200 hover:bg-white/10 transition-colors"
@@ -122,22 +141,24 @@ function GecmisContent() {
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-pink-500" />
             </div>
           ) : gecmis.length === 0 ? (
-            <div className="flex min-h-[300px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-pink-100 text-3xl">
-                ↺
+            <div className="flex min-h-[400px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center">
+              <div className="animate-float mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-violet-100 via-pink-100 to-indigo-100 shadow-lg shadow-violet-100/50">
+                <RotateCcw className="h-10 w-10 text-violet-500" strokeWidth={1.5} />
               </div>
-              <h3 className="text-lg font-bold text-slate-900">
+              <h3 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
                 Henüz geçmiş yok
               </h3>
-              <p className="mt-2 max-w-xs text-sm leading-6 text-slate-500">
-                Asistanda öneri aldıkça burada listelenecek. Her seferinde en
-                fazla 50 kayıt tutulur.
+              <p className="mt-3 max-w-xs text-sm leading-7 text-slate-500">
+                Asistanda öneri aldıkça burada listelenecek.
+                <br />
+                En fazla 50 kayıt tutulur.
               </p>
               <Link
                 href="/asistan"
-                className="mt-6 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-pink-200 hover:scale-[1.01] transition-transform"
+                className="mt-7 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-pink-200 transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:shadow-[0_0_24px_rgba(236,72,153,0.3)] hover:-translate-y-px active:scale-[0.97]"
               >
                 Asistanı Aç
+                <ArrowRight className="h-4 w-4" strokeWidth={2} />
               </Link>
             </div>
           ) : (
@@ -177,11 +198,11 @@ function GecmisContent() {
                         </p>
                       </div>
                       <span
-                        className={`shrink-0 text-lg text-slate-400 transition-transform ${
+                        className={`shrink-0 text-slate-400 transition-transform ${
                           acik ? "rotate-180" : ""
                         }`}
                       >
-                        ⌄
+                        <ChevronDown className="h-5 w-5" strokeWidth={2} />
                       </span>
                     </button>
 
@@ -214,7 +235,7 @@ function GecmisContent() {
                                   className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors"
                                   type="button"
                                 >
-                                  ⧉ Kopyala
+                                  <Copy className="h-3.5 w-3.5" strokeWidth={2} /> Kopyala
                                 </button>
                               </div>
                             </div>
@@ -227,7 +248,7 @@ function GecmisContent() {
                             className="rounded-xl px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
                             type="button"
                           >
-                            🗑 Bu kaydı sil
+                            <Trash2 className="h-4 w-4" strokeWidth={2} /> Bu kaydı sil
                           </button>
                         </div>
                       </div>

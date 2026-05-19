@@ -2,14 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState, useRef } from "react";
 import {
   Ton,
   IliskiAsamasi,
   Hedef,
-  SohbetMesaji,
-  MesajOnerisi,
-  HataState,
   tonlar,
   asamalar,
   hedefler,
@@ -21,215 +18,83 @@ import { SelectionButton } from "@/components/selection-button";
 import { SuggestionCard } from "@/components/suggestion-card";
 import { ConversationInput } from "@/components/conversation-input";
 import { EmptyStateGuide } from "@/components/empty-state-guide";
-import { SuggestionSkeleton } from "@/components/suggestion-skeleton";
+import { AiLoading } from "@/components/ai-loading";
 import { ToastContainer, useToast } from "@/components/toast";
 import { navItems } from "@/lib/ui-data";
-import { useRef } from "react";
+import { motion } from "framer-motion";
+import { Heart, RotateCcw, Clock, WifiOff, AlertTriangle, Lock, Sparkles } from "lucide-react";
+
+import { useSohbet } from "@/hooks/use-sohbet";
+import { useFavoriler } from "@/hooks/use-favoriler";
+import { useOneriler } from "@/hooks/use-oneriler";
+import { useClipboard } from "@/hooks/use-clipboard";
+import { useGeriBildirim } from "@/hooks/use-geri-bildirim";
 
 export function AssistantApp() {
-  const [sohbet, setSohbet] = useState<SohbetMesaji[]>([]);
+  /* UI state */
   const [eklemekIstedikleri, setEklemekIstedikleri] = useState("");
   const [ton, setTon] = useState<Ton>("esprili");
   const [asama, setAsama] = useState<IliskiAsamasi>("yazisiyoruz");
   const [hedef, setHedef] = useState<Hedef>("sohbeti_surdur");
-  const [oneriler, setOneriler] = useState<MesajOnerisi[]>([]);
-  const [yukleniyor, setYukleniyor] = useState(false);
-  const [hata, setHata] = useState<HataState | null>(null);
-  const [kalanSure, setKalanSure] = useState<number>(0);
-  const [kopyalandi, setKopyalandi] = useState<number | null>(null);
-  const [feedback, setFeedback] = useState<"iyi" | "kotu" | null>(null);
-  const [favoriler, setFavoriler] = useState<string[]>([]);
   const { toasts, goster: toastGoster, kapat: toastKapat } = useToast();
   const pathname = usePathname();
-  const sonuclarRef = useRef<HTMLElement>(null);
 
-  useEffect(() => {
-    try {
-      const kayitliFavoriler = window.localStorage.getItem("fm_favoriler");
-      if (kayitliFavoriler) {
-        const parsed = JSON.parse(kayitliFavoriler);
-        if (Array.isArray(parsed)) {
-          setFavoriler(parsed.filter((item) => typeof item === "string"));
-        }
-      }
-    } catch {
-      window.localStorage.removeItem("fm_favoriler");
-    }
+  /* Custom hooks */
+  const { sohbet, setSohbet, ornekYukle, sohbetTemizle } = useSohbet();
+  const { favoriler, favoriDegistir } = useFavoriler(toastGoster);
+  const {
+    oneriler,
+    yukleniyor,
+    hata,
+    kalanSure,
+    sonuclarRef,
+    oneriAl,
+    hataKapat,
+  } = useOneriler(toastGoster);
+  const { kopyalandi, kopyala } = useClipboard(toastGoster);
+  const { feedback, geriBildirimGonder, resetFeedback } = useGeriBildirim(hataKapat);
 
-    try {
-      const kayitliSohbet = window.localStorage.getItem("fm_sohbet");
-      if (kayitliSohbet) {
-        const parsed = JSON.parse(kayitliSohbet);
-        if (
-          Array.isArray(parsed) &&
-          parsed.every(
-            (m) =>
-              typeof m === "object" &&
-              m !== null &&
-              (m.gonderen === "sen" || m.gonderen === "o") &&
-              typeof m.metin === "string"
-          )
-        ) {
-          setSohbet(parsed);
-        }
-      }
-    } catch {
-      window.localStorage.removeItem("fm_sohbet");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem("fm_favoriler", JSON.stringify(favoriler));
-  }, [favoriler]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem("fm_sohbet", JSON.stringify(sohbet));
-  }, [sohbet]);
-
-  /* Rate limit geri sayımı */
-  useEffect(() => {
-    if (hata?.tip !== "rateLimit" || !hata.retryAfter) return;
-    setKalanSure(hata.retryAfter);
-    const interval = setInterval(() => {
-      setKalanSure((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          setHata(null);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [hata]);
-
-  function hataTipiBelirle(status: number): HataState["tip"] {
-    if (status === 429) return "rateLimit";
-    if (status >= 500) return "sunucu";
-    if (status >= 400) return "input";
-    return "genel";
-  }
-
-  async function oneriAl() {
-    if (sohbet.length === 0) return;
-
-    setYukleniyor(true);
-    setHata(null);
-    setOneriler([]);
-    setFeedback(null);
-
-    try {
-      const res = await fetch("/api/oneri", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sohbet, eklemekIstedikleri, ton, asama, hedef }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        const retryAfter = parseInt(res.headers.get("Retry-After") || "", 10);
-        const tip = hataTipiBelirle(res.status);
-        setHata({
-          mesaj: data.hata || "Bir hata oluştu.",
-          tip,
-          retryAfter: Number.isFinite(retryAfter) ? retryAfter : undefined,
-        });
-        return;
-      }
-
-      setOneriler(data.oneriler);
-
-      /* Mobilde sonuçlara otomatik kaydır */
-      if (window.innerWidth < 1024) {
-        setTimeout(() => {
-          sonuclarRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 100);
-      }
-
-      /* Geçmişe kaydet */
-      try {
-        const yeniKayit = {
-          id: Date.now().toString(),
-          tarih: new Date().toISOString(),
-          sohbet,
-          ton,
-          asama,
-          hedef,
-          oneriler: data.oneriler,
-        };
-        const mevcut = window.localStorage.getItem("fm_gecmis");
-        const liste = mevcut ? JSON.parse(mevcut) : [];
-        const yeniListe = [yeniKayit, ...liste].slice(0, 50);
-        window.localStorage.setItem("fm_gecmis", JSON.stringify(yeniListe));
-      } catch {
-        // ignore
-      }
-    } catch {
-      setHata({
-        mesaj: "İnternet bağlantın kesik gibi görünüyor. Kontrol edip tekrar dene.",
-        tip: "baglanti",
-      });
-    } finally {
-      setYukleniyor(false);
-    }
-  }
-
-  async function kopyala(metin: string, index: number) {
-    try {
-      await navigator.clipboard.writeText(metin);
-      setKopyalandi(index);
-      toastGoster("Mesaj panoya kopyalandı", "basari");
-      setTimeout(() => setKopyalandi(null), 2000);
-    } catch {
-      toastGoster("Kopyalanamadı. Manuel olarak seçip kopyalayabilirsiniz.", "hata");
-    }
-  }
-
-  async function geriBildirimGonder(deger: "iyi" | "kotu") {
-    setFeedback(deger);
-    try {
-      await fetch("/api/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ deger, ton, asama, hedef }),
-      });
-    } catch {
-      setFeedback(null);
-      setHata({
-        mesaj: "Geri bildirimin kaydedilemedi, ama merak etme, önemli değil.",
-        tip: "baglanti",
-      });
-    }
-  }
-
-  function favoriId(onerilenMesaj: string) {
-    return `${ton}:${asama}:${hedef}:${onerilenMesaj}`;
-  }
-
-  function favoriDegistir(id: string) {
-    setFavoriler((mevcut) =>
-      mevcut.includes(id)
-        ? mevcut.filter((item) => item !== id)
-        : [...mevcut, id]
-    );
-  }
-
+  /* Memoized */
   const hazir = sohbet.length > 0;
   const seciliTon = tonlar.find((item) => item.id === ton);
   const seciliAsama = asamalar.find((item) => item.id === asama);
   const seciliHedef = hedefler.find((item) => item.id === hedef);
   const ilkOneri = oneriler[0];
 
+  /* Handlers */
+  async function handleOneriAl() {
+    resetFeedback();
+    await oneriAl(sohbet, eklemekIstedikleri, ton, asama, hedef);
+  }
+
+  async function handleGeriBildirim(deger: "iyi" | "kotu") {
+    await geriBildirimGonder(deger, ton, asama, hedef);
+  }
+
+  function handleOrnekYukle() {
+    ornekYukle();
+    setAsama("yazisiyoruz");
+    setHedef("sohbeti_surdur");
+    toastGoster("Örnek sohbet yüklendi. Şimdi ton seçip öneri alabilirsin.", "bilgi");
+  }
+
   return (
-    <main className="min-h-screen bg-[#f5f7fb] text-slate-950 sm:p-5">
-      <div className="mx-auto flex min-h-screen sm:min-h-[calc(100vh-40px)] max-w-7xl overflow-hidden sm:rounded-[22px] border-0 sm:border border-slate-200 bg-white shadow-none sm:shadow-2xl shadow-slate-200/80">
+    <main className="relative min-h-screen bg-[radial-gradient(ellipse_80%_80%_at_50%_-5%,rgba(168,85,247,0.07),transparent_50%),radial-gradient(ellipse_80%_80%_at_80%_80%,rgba(236,72,153,0.05),transparent_50%),#f5f7fb] text-slate-950 sm:p-5 overflow-hidden">
+      {/* Aurora — animated soft gradient base */}
+      <div className="pointer-events-none fixed inset-0 -z-10 aurora-bg" />
+
+      {/* Floating blobs — assistant page */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="animate-blob absolute -left-10 top-1/4 h-80 w-80 rounded-full bg-violet-200/30 blur-[90px]" />
+        <div className="animate-blob-2 absolute -right-10 top-1/3 h-80 w-80 rounded-full bg-pink-200/25 blur-[90px]" />
+        <div className="animate-blob-3 absolute left-1/4 bottom-1/4 h-72 w-72 rounded-full bg-indigo-200/20 blur-[90px]" />
+      </div>
+
+      <div className="relative mx-auto flex min-h-screen sm:min-h-[calc(100vh-40px)] max-w-7xl overflow-hidden sm:rounded-[22px] border-0 sm:border border-slate-200 bg-white/80 backdrop-blur-xl shadow-none sm:shadow-2xl shadow-slate-200/80">
         {/* Sidebar */}
         <aside className="hidden w-24 shrink-0 flex-col items-center bg-[#070b20] px-3 py-5 text-white lg:flex">
-          <Link href="/" className="mb-8 flex h-12 w-12 items-center justify-center rounded-2xl border border-pink-400/50 bg-white/5 text-2xl text-pink-300 hover:bg-white/10 transition-colors" aria-label="Ana sayfa">
-            ♡
+          <Link href="/" className="mb-8 flex h-12 w-12 items-center justify-center rounded-2xl border border-pink-400/50 bg-white/5 text-pink-300 hover:bg-white/10 transition-colors" aria-label="Ana sayfa">
+            <Heart className="h-6 w-6" strokeWidth={1.5} />
           </Link>
           <nav className="flex flex-1 flex-col items-center gap-4">
             {navItems.map((item) => {
@@ -242,7 +107,7 @@ export function AssistantApp() {
                   title="Yakında"
                   type="button"
                 >
-                  <span className="text-xl">{item.icon}</span>
+                  <span className="text-xl"><item.icon className="h-5 w-5" strokeWidth={1.5} /></span>
                   <span>{item.label}</span>
                   <span className="text-[10px]">Yakında</span>
                 </button>
@@ -257,7 +122,7 @@ export function AssistantApp() {
                   }`}
                   title={item.label}
                 >
-                  <span className="text-xl">{item.icon}</span>
+                  <span className="text-xl"><item.icon className="h-5 w-5" strokeWidth={1.5} /></span>
                   <span>{item.label}</span>
                 </Link>
               );
@@ -265,7 +130,37 @@ export function AssistantApp() {
           </nav>
         </aside>
 
-        <section className="flex min-w-0 flex-1 flex-col">
+        {/* Mobile bottom nav */}
+        <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-slate-200 bg-white/95 backdrop-blur-sm px-1 py-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:hidden">
+          {navItems
+            .filter((item) => !item.disabled)
+            .map((item) => {
+              const active = pathname === item.href;
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`relative flex flex-col items-center gap-0.5 rounded-xl px-3 py-2 text-[10px] font-semibold transition-colors ${
+                    active
+                      ? "text-pink-600"
+                      : "text-slate-400 active:text-slate-600"
+                  }`}
+                >
+                  {active && (
+                    <motion.div
+                      layoutId="tab-indicator"
+                      className="absolute inset-0.5 rounded-lg bg-pink-50"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative z-10 text-lg"><item.icon className="h-5 w-5" strokeWidth={1.5} /></span>
+                  <span className="relative z-10">{item.label}</span>
+                </Link>
+              );
+            })}
+        </nav>
+
+        <section className="flex min-w-0 flex-1 flex-col pb-16 lg:pb-0">
           {/* Header */}
           <header className="flex flex-col gap-4 border-b border-slate-200 bg-[#080c22] px-5 py-5 text-white sm:flex-row sm:items-center sm:justify-between">
             <Link href="/" aria-label="Ana sayfaya dön">
@@ -274,23 +169,23 @@ export function AssistantApp() {
             <div className="hidden sm:flex flex-wrap items-center gap-2">
               <Link
                 href="/favoriler"
-                className={`rounded-xl border border-white/15 px-4 py-2 text-sm transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-xl border border-white/15 px-4 py-2 text-sm transition-colors ${
                   pathname === "/favoriler"
                     ? "bg-white/10 text-white"
                     : "text-slate-200 hover:bg-white/10"
                 }`}
               >
-                ♡ Favoriler
+                <Heart className="h-4 w-4" strokeWidth={1.5} /> Favoriler
               </Link>
               <Link
                 href="/gecmis"
-                className={`rounded-xl border border-white/15 px-4 py-2 text-sm transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-xl border border-white/15 px-4 py-2 text-sm transition-colors ${
                   pathname === "/gecmis"
                     ? "bg-white/10 text-white"
                     : "text-slate-200 hover:bg-white/10"
                 }`}
               >
-                ↺ Geçmiş
+                <RotateCcw className="h-4 w-4" strokeWidth={1.5} /> Geçmiş
               </Link>
             </div>
           </header>
@@ -326,6 +221,15 @@ export function AssistantApp() {
                   mesajlar={sohbet}
                   onChange={setSohbet}
                 />
+
+                {/* Gizlilik rozeti */}
+                <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex gap-2.5">
+                  <Lock className="h-4 w-4 shrink-0 mt-0.5 text-emerald-600" strokeWidth={2} />
+                  <p className="text-xs text-emerald-700 leading-5">
+                    <span className="font-semibold">Mesajların güvende:</span>{" "}
+                    Sohbet geçmişin bize ulaşmıyor, AI'a anlık iletilip siliniyor.
+                  </p>
+                </div>
               </div>
 
               {/* Opsiyonel not */}
@@ -341,7 +245,11 @@ export function AssistantApp() {
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-inner shadow-slate-100">
                   <textarea
                     value={eklemekIstedikleri}
-                    onChange={(e) => setEklemekIstedikleri(e.target.value)}
+                    onChange={(e) => {
+                      setEklemekIstedikleri(e.target.value);
+                      e.target.style.height = "auto";
+                      e.target.style.height = e.target.scrollHeight + "px";
+                    }}
                     placeholder="Örn: çok uzun olmasın, karşı tarafı sıkmayalım"
                     className="min-h-[52px] w-full resize-none bg-transparent text-[14px] leading-6 text-slate-900 outline-none placeholder:text-slate-400"
                     maxLength={MAX_EKLEME}
@@ -424,18 +332,31 @@ export function AssistantApp() {
               {/* CTA */}
                 <div className="mt-7 flex gap-3">
                 <button
-                  onClick={oneriAl}
+                  onClick={handleOneriAl}
                   disabled={!hazir || yukleniyor}
-                  className={`flex min-h-[56px] sm:min-h-14 flex-1 items-center justify-center rounded-2xl px-5 text-base font-bold text-white transition-all active:scale-[0.98] ${
+                  className={`flex min-h-[56px] sm:min-h-14 flex-1 items-center justify-center rounded-2xl px-5 text-base font-bold select-none transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
                     hazir && !yukleniyor
-                      ? "bg-gradient-to-r from-pink-500 to-violet-600 shadow-lg shadow-pink-200 sm:hover:scale-[1.01]"
-                      : "cursor-not-allowed bg-slate-300"
+                      ? "bg-gradient-to-r from-pink-500 to-violet-600 text-white shadow-lg shadow-pink-200 gen-gradient hover:shadow-[0_0_32px_rgba(236,72,153,0.35)] hover:-translate-y-0.5 active:scale-[0.94] active:translate-y-0 active:duration-75"
+                      : "cursor-not-allowed bg-gradient-to-r from-slate-300 to-slate-400 text-white/80"
                   }`}
                   type="button"
                 >
-                  {yukleniyor ? "Öneriler hazırlanıyor..." : "✦ Mesajı Parlat"}
+                  {yukleniyor ? (
+                    "Öneriler hazırlanıyor..."
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" strokeWidth={2} />
+                      Mesajı Parlat
+                    </span>
+                  )}
                 </button>
               </div>
+
+              {!hazir && (
+                <p className="mt-2 text-xs text-slate-400 text-center">
+                  Öneri almak için en az bir mesaj ekleyin.
+                </p>
+              )}
 
               {hata && (
                 <div className={`mt-5 rounded-2xl border p-4 ${
@@ -448,10 +369,10 @@ export function AssistantApp() {
                   <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                     <span className="text-xl shrink-0">
                       {hata.tip === "rateLimit"
-                        ? "⏳"
+                        ? <Clock className="h-6 w-6 text-amber-500" />
                         : hata.tip === "baglanti"
-                          ? "📡"
-                          : "⚠️"}
+                          ? <WifiOff className="h-6 w-6 text-red-500" />
+                          : <AlertTriangle className="h-6 w-6 text-red-500" />}
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-medium ${
@@ -475,7 +396,7 @@ export function AssistantApp() {
                     <div className="flex gap-2 shrink-0 mt-2 sm:mt-0">
                       {hata.tip !== "rateLimit" && (
                         <button
-                          onClick={oneriAl}
+                          onClick={handleOneriAl}
                           disabled={yukleniyor}
                           className="rounded-lg bg-red-100 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-200 transition-colors disabled:opacity-50 min-h-[44px]"
                           type="button"
@@ -484,7 +405,7 @@ export function AssistantApp() {
                         </button>
                       )}
                       <button
-                        onClick={() => setHata(null)}
+                        onClick={hataKapat}
                         className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 transition-colors min-h-[44px]"
                         type="button"
                         aria-label="Hata mesajını kapat"
@@ -496,22 +417,18 @@ export function AssistantApp() {
                 </div>
               )}
 
-              <div className="mt-5 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
-                <p className="flex items-start gap-2 text-xs leading-5 text-emerald-700">
-                  <span className="text-base shrink-0">🔒</span>
-                  <span>
-                    <span className="font-semibold">Mesajlarınız gizli:</span>{" "}
-                    Sohbet geçmişiniz sunucularımızda saklanmıyor. AI'a anlık
-                    olarak iletilip cevap üretildikten sonra otomatik olarak
-                    siliniyor.
-                  </span>
-                </p>
-              </div>
-
               <p className="mt-4 text-xs leading-5 text-slate-500">
                 +18, baskı kuran veya manipülatif içerikler desteklenmez.
                 Hesap oluşturmadan kullanabilirsiniz.
               </p>
+              <div className="mt-2">
+                <Link
+                  href="/gizlilik"
+                  className="text-xs text-slate-400 underline hover:text-slate-600 transition-colors"
+                >
+                  Gizlilik Politikası
+                </Link>
+              </div>
             </section>
 
             {/* Sağ panel — öneriler */}
@@ -535,24 +452,18 @@ export function AssistantApp() {
               </div>
 
               {yukleniyor && oneriler.length === 0 ? (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="h-2 w-2 rounded-full bg-pink-500 animate-ping" />
-                    <p className="text-sm font-semibold text-slate-500">
-                      Öneriler hazırlanıyor...
-                    </p>
-                  </div>
-                  <SuggestionSkeleton count={3} />
-                </div>
+                <AiLoading stage="thinking" />
               ) : oneriler.length === 0 ? (
                 <div className="min-h-[280px] sm:min-h-[420px]">
-                  <EmptyStateGuide sohbetVarMi={sohbet.length > 0} />
+                  <EmptyStateGuide
+                    sohbetVarMi={sohbet.length > 0}
+                    onOrnekYukle={handleOrnekYukle}
+                  />
                 </div>
               ) : (
                 <div className="space-y-4">
                   {oneriler.map((item, index) => {
-                    const kayitId = favoriId(item.mesaj);
-                    const favoriMi = favoriler.includes(kayitId);
+                    const favoriMi = favoriler.some((f) => f.mesaj === item.mesaj);
 
                     return (
                       <SuggestionCard
@@ -564,16 +475,16 @@ export function AssistantApp() {
                         copied={kopyalandi === index}
                         favorite={favoriMi}
                         onCopy={() => kopyala(item.mesaj, index)}
-                        onRegenerate={oneriAl}
-                        onToggleFavorite={() => favoriDegistir(kayitId)}
+                        onRegenerate={handleOneriAl}
+                        onToggleFavorite={() => favoriDegistir(item.mesaj, item.aciklama)}
                       />
                     );
                   })}
 
                   <button
-                    onClick={oneriAl}
+                    onClick={handleOneriAl}
                     disabled={!hazir || yukleniyor}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 min-h-[48px]"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 select-none transition-all duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:bg-slate-50 hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] hover:-translate-y-px active:scale-[0.96] active:translate-y-0 active:duration-75 disabled:cursor-not-allowed disabled:opacity-60 min-h-[48px]"
                     type="button"
                   >
                     {yukleniyor ? (
@@ -622,7 +533,7 @@ export function AssistantApp() {
                     </p>
                     <div className="mt-3 flex gap-2">
                       <button
-                        onClick={() => geriBildirimGonder("iyi")}
+                        onClick={() => handleGeriBildirim("iyi")}
                         disabled={feedback !== null}
                         className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
                           feedback === "iyi"
@@ -634,7 +545,7 @@ export function AssistantApp() {
                         Evet
                       </button>
                       <button
-                        onClick={() => geriBildirimGonder("kotu")}
+                        onClick={() => handleGeriBildirim("kotu")}
                         disabled={feedback !== null}
                         className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
                           feedback === "kotu"

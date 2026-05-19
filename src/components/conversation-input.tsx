@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { X } from "lucide-react";
 import { SohbetMesaji } from "@/lib/types";
 import { MAX_MESAJ, MAX_METIN } from "@/lib/constants";
 
@@ -44,7 +45,7 @@ export function ConversationInput({ mesajlar, onChange }: Props) {
   return (
     <div className="space-y-3">
       {mesajlar.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 space-y-2 max-h-48 overflow-y-auto">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 space-y-2 max-h-60 overflow-y-auto">
           {mesajlar.map((m, i) => (
             <div
               key={`${m.gonderen}-${m.metin}-${i}`}
@@ -68,7 +69,7 @@ export function ConversationInput({ mesajlar, onChange }: Props) {
                 type="button"
                 aria-label="Mesajı sil"
               >
-                ×
+                <X className="h-5 w-5" strokeWidth={2} />
               </button>
             </div>
           ))}
@@ -119,7 +120,7 @@ export function ConversationInput({ mesajlar, onChange }: Props) {
               onClick={ekle}
               disabled={!yeniMetin.trim()}
               type="button"
-              className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40 hover:bg-slate-700 transition-colors min-h-[44px]"
+              className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40 hover:bg-slate-700 hover:shadow-[0_0_16px_rgba(30,41,59,0.25)] select-none transition-all duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:-translate-y-px active:scale-[0.94] active:translate-y-0 active:duration-75 min-h-[44px]"
             >
               Ekle
             </button>

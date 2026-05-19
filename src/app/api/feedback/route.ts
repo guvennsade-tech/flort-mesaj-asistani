@@ -6,9 +6,26 @@ import {
   tonlar,
 } from "@/lib/types";
 import { saveFeedback } from "@/lib/feedback-store";
+import { getClientKey, checkRateLimit } from "@/lib/rate-limit";
+import { RATE_LIMIT } from "@/lib/constants";
 
 export async function POST(request: NextRequest) {
   try {
+    const clientId = request.cookies.get("fm_client_id")?.value || "";
+    if (clientId) {
+      const rateLimit = await checkRateLimit(
+        `feedback:${getClientKey(request.headers, clientId)}`,
+        20,
+        60 * 60 * 1000
+      );
+      if (!rateLimit.allowed) {
+        return NextResponse.json(
+          { hata: "Çok fazla geri bildirim gönderildi." },
+          { status: 429 }
+        );
+      }
+    }
+
     const body: FeedbackRequest = await request.json();
     const { deger, ton, asama, hedef } = body;
 

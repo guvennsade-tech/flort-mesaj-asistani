@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Sparkles, Copy, Check } from "lucide-react";
 import { MesajOnerisi } from "@/lib/types";
 
 /* ---------- Demo cevap kütüphanesi (API maliyeti yok, rate limit yok) ---------- */
@@ -15,7 +16,7 @@ const demoPaketler: DemoPaket[] = [
   {
     keywords: ["hafta sonu", "ne yap", "plan", "boş", "müsait", "zaman"],
     oneriler: [
-      { mesaj: "Henüz net bir plan yok, senin önerin var mı? 😄", aciklama: "Karşı tarafa soru sorarak sohbeti açık tutar." },
+      { mesaj: "Henüz net bir plan yok, senin önerin var mı?", aciklama: "Karşı tarafa soru sorarak sohbeti açık tutar." },
       { mesaj: "Kafeye gitmeyi düşünüyordum, gelmek ister misin?", aciklama: "Doğal bir buluşma daveti içerir." },
       { mesaj: "Dizi izleyip dinlenmek istiyorum ama tek başına sıkıcı oluyor.", aciklama: "Hafif bir iltifat ve ortak aktivite önerisi." },
     ],
@@ -23,7 +24,7 @@ const demoPaketler: DemoPaket[] = [
   {
     keywords: ["nasılsın", "naber", "napıyorsun", "nasıl gidiyor", "keyif"],
     oneriler: [
-      { mesaj: "İyiyim, seninle yazışınca daha da iyi oldum tabii ✨", aciklama: "Samimi ve hafif romantik bir ton kullanır." },
+      { mesaj: "İyiyim, seninle yazışınca daha da iyi oldum tabii.", aciklama: "Samimi ve hafif romantik bir ton kullanır." },
       { mesaj: "İyi ama biraz sıkıldım, sen anlat neler yapıyorsun?", aciklama: "Karşı tarafa ilgi göstererek sohbeti devam ettirir." },
       { mesaj: "Fena değil, senin haberlerini bekliyordum aslında.", aciklama: "İlgi gösterir ama baskı kurmaz." },
     ],
@@ -31,7 +32,7 @@ const demoPaketler: DemoPaket[] = [
   {
     keywords: ["görüşelim", "buluşalım", "tanışalım", "kahve", "yemek", "sinema"],
     oneriler: [
-      { mesaj: "Kesinlikle! Hangi gün sana uygun? ☕", aciklama: "Olumlu ve net bir yanıt verir." },
+      { mesaj: "Kesinlikle! Hangi gün sana uygun?", aciklama: "Olumlu ve net bir yanıt verir." },
       { mesaj: "Ben de aynı şeyi düşünüyordum. Yakındaki bir kafe önerir misin?", aciklama: "Karşı tarafın fikrini alarak ortak karar almayı teşvik eder." },
       { mesaj: "Çok isterim ama bu hafta biraz yoğunum, önümüzdeki hafta olur mu?", aciklama: "Dürüst ama kapıyı kapatmayan bir cevap." },
     ],
@@ -39,7 +40,7 @@ const demoPaketler: DemoPaket[] = [
   {
     keywords: ["özledim", "özle", "düşün", "aklımda", "geliyorsun"],
     oneriler: [
-      { mesaj: "Ben de seni çok özledim, bu hafta görüşelim mi? 💫", aciklama: "Duygusal karşılık verir ve somut bir adım atar." },
+      { mesaj: "Ben de seni çok özledim, bu hafta görüşelim mi?", aciklama: "Duygusal karşılık verir ve somut bir adım atar." },
       { mesaj: "Her gece uyumadan önce aklıma geliyorsun.", aciklama: "Romantik ama abartısız bir itiraf." },
       { mesaj: "Özlemek güzel, ama seninle olmak daha güzel olurdu.", aciklama: "Samimi ve çarpıcı bir cümle." },
     ],
@@ -47,7 +48,7 @@ const demoPaketler: DemoPaket[] = [
   {
     keywords: ["şaka", "gül", "komik", "espri", "güldüm", "kahkaha"],
     oneriler: [
-      { mesaj: "Komiksin sen, gülmekten telefonu düşürdüm az kalsın 😂", aciklama: "Esprili bir karşılık verir." },
+      { mesaj: "Komiksin sen, gülmekten telefonu düşürdüm az kalsın.", aciklama: "Esprili bir karşılık verir." },
       { mesaj: "Bu şakayı çalıyorum, arkadaşlarıma anlatacağım.", aciklama: "Mizahi bir ton kullanır." },
       { mesaj: "Seninle konuşmak bütün günün stresini alıyor.", aciklama: "Esprinin ardından samimi bir iltifat." },
     ],
@@ -56,7 +57,7 @@ const demoPaketler: DemoPaket[] = [
     keywords: ["sev", "hoşlan", "beğen", "çekici", "yakışıklı", "güzel"],
     oneriler: [
       { mesaj: "Sen de benim için çok özelsin, bunu biliyorsun değil mi?", aciklama: "Karşılıklı duyguyu nazikçe ifade eder." },
-      { mesaj: "Bunu duymak beni çok mutlu etti, teşekkür ederim 🌸", aciklama: "Dürüst ve sıcak bir karşılık." },
+      { mesaj: "Bunu duymak beni çok mutlu etti, teşekkür ederim.", aciklama: "Dürüst ve sıcak bir karşılık." },
       { mesaj: "Ben de seninle olmaktan çok keyif alıyorum.", aciklama: "İlgi gösterir ama abartılı olmaz." },
     ],
   },
@@ -64,14 +65,14 @@ const demoPaketler: DemoPaket[] = [
     keywords: ["yemek", "aç", "yedin mi", "akşam yemeği", "restoran", "mutfak"],
     oneriler: [
       { mesaj: "Henüz yemedim, seninle birlikte yemek isterdim aslında.", aciklama: "Doğal bir buluşma daveti." },
-      { mesaj: "Ne önerirsin? Senin zevkine güveniyorum. 😊", aciklama: "Karşı tarafa değer verdiğini hissettirir." },
+      { mesaj: "Ne önerirsin? Senin zevkine güveniyorum.", aciklama: "Karşı tarafa değer verdiğini hissettirir." },
       { mesaj: "Eve yeni geldim, şimdi bir şeyler hazırlayacağım. Sen ne yedin?", aciklama: "Günlük ve samimi bir sohbet akışı." },
     ],
   },
 ];
 
 const fallbackOneriler: MesajOnerisi[] = [
-  { mesaj: "İlginç bir soru, bunu yüz yüze konuşsak daha iyi olur bence. 😄", aciklama: "Sohbeti canlı tutar ve buluşma ihtimali açar." },
+  { mesaj: "İlginç bir soru, bunu yüz yüze konuşsak daha iyi olur bence.", aciklama: "Sohbeti canlı tutar ve buluşma ihtimali açar." },
   { mesaj: "Seninle aynı şeyi düşünüyordum, bu tesadüf mü yoksa?", aciklama: "Karşı tarafa yakınlık hissettirir." },
   { mesaj: "Bunu biraz daha açar mısın, tam anlayamadım.", aciklama: "Merak uyandırarak sohbeti derinleştirir." },
 ];
@@ -154,23 +155,23 @@ export function MiniDemo() {
           <button
             onClick={gonder}
             disabled={!mesaj.trim() || yukleniyor}
-            className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-5 text-sm font-bold text-white transition-all ${
+             className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-5 text-sm font-bold select-none transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
               mesaj.trim() && !yukleniyor
-                ? "bg-gradient-to-r from-pink-500 to-violet-600 shadow-md shadow-pink-200 hover:scale-[1.02]"
-                : "cursor-not-allowed bg-slate-300"
+                ? "bg-gradient-to-r from-pink-500 to-violet-600 text-white shadow-md shadow-pink-200 hover:shadow-[0_0_24px_rgba(236,72,153,0.35)] hover:-translate-y-px active:scale-[0.94] active:translate-y-0 active:duration-75"
+                : "cursor-not-allowed bg-gradient-to-r from-slate-300 to-slate-400 text-white/80"
             }`}
             type="button"
           >
             {yukleniyor ? (
-              <>
-                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Hazırlanıyor...
-              </>
-            ) : (
-              <>✦ Öneri Al</>
+                <>
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Hazırlanıyor...
+                </>
+              ) : (
+                <><Sparkles className="h-4 w-4" strokeWidth={2} /> Öneri Al</>
             )}
           </button>
         </div>
@@ -208,7 +209,11 @@ export function MiniDemo() {
                     }`}
                     type="button"
                   >
-                    {kopyalandi === i ? "✓ Kopyalandı" : "⧉ Kopyala"}
+                    {kopyalandi === i ? (
+                      <><Check className="h-3.5 w-3.5" /> Kopyalandı</>
+                    ) : (
+                      <><Copy className="h-3.5 w-3.5" /> Kopyala</>
+                    )}
                   </button>
                 </div>
               </div>
